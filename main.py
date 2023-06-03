@@ -14,6 +14,7 @@ from transformMD import GNNTransformMD
 import sys
 import pytraj as pt
 import pickle 
+import nglview as nv
 
 # JavaScript functions
 resid_hover = """function(atom,viewer) {{
@@ -189,6 +190,12 @@ def predict(pdb_code, pdb_file):
    
     pdb = open(pdb_file.name, "r").read()
 
+    """ NGL
+    view = nv.NGLWidget()
+    view._remote_call("setSize", target="Widget", args=["800px", "600px"])
+    view.add_pdbstr(pdb, defaultRepresentation=True)
+    """
+    
     view = py3Dmol.view(width=600, height=400)
     view.setBackgroundColor('white')
     view.addModel(pdb, "pdb")
@@ -197,9 +204,22 @@ def predict(pdb_code, pdb_file):
     for i in range(10):
         view.addSphere({'center':{'x':atoms_protein.iloc[topN_ind[i], atoms_protein.columns.get_loc("x")], 'y':atoms_protein.iloc[topN_ind[i], atoms_protein.columns.get_loc("y")],'z':atoms_protein.iloc[topN_ind[i], atoms_protein.columns.get_loc("z")]},'radius':adaptability[topN_ind[i]]/1.5,'color':'orange','alpha':0.75})    
 
-    view.zoomTo()
+         # Add lighting and shading options to the view object:
+         view.setStyle({'stick': {'colorscheme': {'prop': 'resi', 'C': 'turquoise'}}})
+         view.setStyle({'sphere': {}})
+         view.addLight([0, 0, 10], [1, 1, 1], 1)  # Add directional light from the z-axis
+         view.setSpecular(0.5)  # Adjust the specular lighting effect
+         view.setAmbient(0.5)  # Adjust the ambient lighting effect
 
+    view.zoomTo()
+    view.rotate(180, "y")  # Rotate the structure by 180 degrees along the y-axis
+    # Add animation options to the view object:
+    view.animate({'loop': 'forward', 'reps': 2})  # Animate the visualization to loop forward 2 times
     output = view._make_html().replace("'", '"')
+   
+    """ NGLviewer
+    output = view.render_notebook()
+    """
 
     x = f"""<!DOCTYPE html><html> {output} </html>"""  # do not use ' in this input
     return f"""<iframe  style="width: 100%; height:420px" name="result" allow="midi; geolocation; microphone; camera; 
@@ -208,6 +228,9 @@ def predict(pdb_code, pdb_file):
     allow-top-navigation-by-user-activation allow-downloads" allowfullscreen="" 
     allowpaymentrequest="" frameborder="0" srcdoc='{x}'></iframe>""", pd.DataFrame(data, columns=['index','element','x','y','z','Adaptability'])
 
+""" NGLviewer
+return output, pd.DataFrame(data, columns=['index','element','x','y','z','Adaptability'])
+"""
 
 callback = gr.CSVLogger()
 
