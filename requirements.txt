@@ -1,0 +1,6 @@
+gradio
+torchvision
+requests
+py3Dmol
+biopython
+pandas
