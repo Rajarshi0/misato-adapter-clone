@@ -180,6 +180,75 @@ def predict(pdb_code, pdb_file):
     data = []
 
 
+    for i in range(10):
+        data.append([i, atom_mapping[atoms_protein.iloc[i, atoms_protein.columns.get_loc("element")] - 1], atoms_protein.iloc[topN_ind[i], atoms_protein.columns.get_loc("x")],
+        atoms_protein.iloc[topN_ind[i], atoms_protein.columns.get_loc("y")],
+        atoms_protein.iloc[topN_ind[i], atoms_protein.columns.get_loc("z")],
+        adaptability[topN_ind[i]]
+    ])
+   
+    pdb = open(pdb_file.name, "r").read()
+
+    view = py3Dmol.view(width=600, height=400)
+    view.setBackgroundColor('white')
+    view.addModel(pdb, "pdb")
+    view.setStyle({'stick': {'colorscheme': {'prop': 'resi', 'C': 'turquoise'}}})
+   
+    for i in range(10):
+        view.addSphere({'center':{'x':atoms_protein.iloc[topN_ind[i], atoms_protein.columns.get_loc("x")], 'y':atoms_protein.iloc[topN_ind[i], atoms_protein.columns.get_loc("y")],'z':atoms_protein.iloc[topN_ind[i], atoms_protein.columns.get_loc("z")]},'radius':adaptability[topN_ind[i]]/1.5,'color':'orange','alpha':0.75})    
+
+    view.zoomTo()
+
+    output = view._make_html().replace("'", '"')
+
+    x = f"""<!DOCTYPE html><html> {output} </html>"""  # do not use ' in this input
+    return f"""<iframe  style="width: 100%; height:420px" name="result" allow="midi; geolocation; microphone; camera; 
+    display-capture; encrypted-media;" sandbox="allow-modals allow-forms 
+    allow-scripts allow-same-origin allow-popups 
+    allow-top-navigation-by-user-activation allow-downloads" allowfullscreen="" 
+    allowpaymentrequest="" frameborder="0" srcdoc='{x}'></iframe>""", pd.DataFrame(data, columns=['index','element','x','y','z','Adaptability'])
+
+
+callback = gr.CSVLogger()
+
+"""
+def predict(pdb_code, pdb_file):
+    #path_to_pdb = get_pdb(pdb_code=pdb_code, filepath=pdb_file)
+
+    #pdb = open(path_to_pdb, "r").read()
+    # switch to misato env if not running from container
+
+    pdbid = get_pdbid_from_filename(pdb_file.name)
+    mdh5_file = "inference_for_md.hdf5"
+    mappath = "/maps"
+    mask = "!@H="
+    preprocess(pdbid=pdbid, ouputfile=mdh5_file, mask=mask, mappath=mappath)
+
+    md_H5File = h5py.File(mdh5_file)
+
+    column_names = ["x", "y", "z", "element"]
+    atoms_protein = pd.DataFrame(columns = column_names)
+    cutoff = md_H5File[pdbid]["molecules_begin_atom_index"][:][-1] # cutoff defines protein atoms
+
+    atoms_protein["x"] = md_H5File[pdbid]["atoms_coordinates_ref"][:][:cutoff, 0]
+    atoms_protein["y"] = md_H5File[pdbid]["atoms_coordinates_ref"][:][:cutoff, 1]
+    atoms_protein["z"] = md_H5File[pdbid]["atoms_coordinates_ref"][:][:cutoff, 2]
+
+    atoms_protein["element"] = md_H5File[pdbid]["atoms_element"][:][:cutoff]  
+
+    item = {}
+    item["scores"] = 0
+    item["id"] = pdbid
+    item["atoms_protein"] = atoms_protein
+
+    transform = GNNTransformMD()
+    data_item = transform(item)
+    adaptability = model(data_item)
+    adaptability = adaptability.detach().numpy()
+    
+    data = []
+
+
     for i in range(adaptability.shape[0]):
         data.append([i, atom_mapping[atoms_protein.iloc[i, atoms_protein.columns.get_loc("element")] - 1], atoms_protein.iloc[i, atoms_protein.columns.get_loc("x")],atoms_protein.iloc[i, atoms_protein.columns.get_loc("y")],atoms_protein.iloc[i, atoms_protein.columns.get_loc("z")],adaptability[i]])
 
@@ -209,6 +278,7 @@ def predict(pdb_code, pdb_file):
 
 
 callback = gr.CSVLogger()
+"""
 
 def run():
     with gr.Blocks() as demo:
